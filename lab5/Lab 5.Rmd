@@ -1,0 +1,387 @@
+---
+title: "Lab 5"
+author: "HaiXiao Lu"
+date: "3/8/2021"
+output:
+  html_document:
+    toc: yes
+    highlight: zenburn
+    toc_depth: 6
+    number_sections: yes
+    theme: lumen
+  pdf_document:
+    toc: yes
+    toc_depth: '6'
+  word_document:
+    toc: yes
+    toc_depth: '6'
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Task 1 : Make coin-die output using an R funtion
+
+### 1(a). Use cdbbox() to make some useful output
+
+```{r, echo = FALSE, warning = FALSE, message=FALSE}
+cdbbox <- function(k = 1, lik, theta, h1="s"){ # k = 1...6
+    # xtable for latex output
+    if(!require(xtable)) install.packages(xtable)
+    # rename the first and second components of the likelihood
+    lik1 <- lik[1]
+    lik2 <- lik[2]
+    # Make a prior that has the desired characteristics
+    # if h1 small "s" then ...else...
+    ifelse(h1=="s", pi1 <- k/6*lik2/(lik1 + k/6 * lik2), 
+           pi1 <- lik2/(lik2 + k/6 * lik1))
+    # sum of probalities is 1
+    prior <- c(pi1, 1- pi1)
+    # lik <- c(lik1, lik2)
+    h <- prior * lik
+    # Bayes
+    post <- h/sum(h)
+    # make a matrix for the bayes box
+    mat <- cbind(theta, prior, lik, h, post)
+    rownames(mat) <- 1:length(lik)
+    Totals <- c(NA, sum(prior), NA, sum(h), sum(post))
+    mat2 <- rbind(mat, Totals)
+    # Make plots 
+     layout(matrix(c(1, 2), nr = 1, nc = 2, byrow = TRUE))
+    # barplot(matrix(prior, nc=2, nr = 1, byrow = TRUE, 
+    #                dimnames = list(c("Coin"), theta)),
+    #                ylim =c(0, 1), las = 1, main = "Prior Not the Proposal")
+            
+    barplot(matrix(c(0.5, 0.5), nc = 2, nr = 1, byrow = TRUE,
+                   dimnames = list(c("Coin"), theta)), 
+                   ylim = c(0,1),col="olivedrab2",
+                   las = 1, main = "Proposal\n Uniform")
+    
+    barplot(matrix(h, nc = 2, nr = 1, byrow = TRUE,
+                   dimnames = list(c("Coin"),theta)), 
+                   ylim = c(0, max(h) + 0.5*max(h)), 
+                   las = 1,col="red2",
+                   main = "Proportional to target\n h")
+    
+    # barplot(matrix(post, nc=2, nr = 1, byrow = TRUE,
+    #                dimnames = list(c("Coin"), theta)),
+    #                ylim = c(0,max(post)+0.5*max(post)),
+    #                las = 1, col = "green3",
+    #                main = "Posterior target /n post")
+    # Return a list of useful objects
+    return(list(bbox = mat2, latex=xtable(mat2, digits=6),
+                mat = mat, h=h, h1=h1, k=k))
+    
+}
+# retrive the function
+cdbbox(k=2, lik=dbinom(x=4,size=10, prob=c(0.4, 0.8)),
+       theta=c(0.4, 0.8), h1="s") -> result
+result$bbox
+result$k
+```
+
+
+### 1(a)-iii. Acceptance set
+
+From high to low h values, the acceptance set should be {1, 2, 3, 4} to {1, 2, 3, 4}, 
+such as {1, 2}, {1, 3}, {2,3}, etc.
+
+Otherwise, anything that relates to set {5, 6} will be rejected, 
+such as {1,5},{1, 6}, {4, 6}, etc.
+
+
+### 1(b). Improve the graphics from the part(a) function
+
+```{r, echo = FALSE}
+cdbbox <- function(k = 1, lik, theta, h1="s"){ # k = 1...6
+    # xtable for latex output
+    if(!require(xtable)) install.packages(xtable)
+    # rename the first and second components of the likelihood
+    lik1 <- lik[1]
+    lik2 <- lik[2]
+    # Make a prior that has the desired characteristics
+    # if h1 small "s" then ...else...
+    ifelse(h1=="s", pi1 <- k/6*lik2/(lik1 + k/6 * lik2), 
+           pi1 <- lik2/(lik2 + k/6 * lik1))
+    # sum of probalities is 1
+    prior <- c(pi1, 1- pi1)
+    # lik <- c(lik1, lik2)
+    h <- prior * lik
+    # Bayes
+    post <- h/sum(h)
+    # make a matrix for the bayes box
+    mat <- cbind(theta, prior, lik, h, post)
+    rownames(mat) <- 1:length(lik)
+    Totals <- c(NA, sum(prior), NA, sum(h), sum(post))
+    mat2 <- rbind(mat, Totals)
+    # Make plots 
+
+                 
+    pie(matrix(c(0.5, 0.5), nc = 2, nr = 1, byrow = TRUE,
+                   dimnames = list(c("Coin"), theta)), 
+                   ylim = c(0,1),col=c("black", "red"), density = 50,
+                   las = 1)
+                   title(main =list("Proposal\n Uniform", 
+                                    col = "red", font = 4))
+    
+   boxplot(matrix(h, nc = 2, nr = 1, byrow = TRUE,
+                   dimnames = list(c("Coin"),theta)), 
+                   ylim = c(0, max(h) + 0.5*max(h)), 
+                   las = 1)
+                  title(main = list("Proportional to target\n h", 
+                                    font = 4, col = "red"))
+    layout(matrix(c(1, 2), nr = 1, nc = 2, byrow = TRUE))
+    
+    # Return a list of useful objects
+    return(list(bbox = mat2, latex=xtable(mat2, digits=6),
+                mat = mat, h=h, h1=h1, k=k))
+    
+}
+
+# retrive the function
+cdbbox(k=2, lik=dbinom(x=4,size=10, prob=c(0.4, 0.8)),
+       theta=c(0.4, 0.8), h1="s") -> result
+```
+
+
+## 2. Derive the code snippet using latex
+
+`ifelse(h1=="s", pi1<-k/6*lik2/(lik1+k/6*lik2), pil<- lik2/(lik2+k/6*lik1))`
+
+This line of code means, pi1 will be accepted with probability of (current value) divided (proposed value), else rejected. 
+
+This can be derived as following formula:
+
+`let h1 == "s" ---> min()`
+`pi1 ---> aij `
+`k/6*lik2 ---> hj`
+`lik1+k6*lik2 ---> hi`
+
+$$a_{ij} = min (1, \frac{h_j}{h_i})$$
+
+
+# Task 2 Make coin-die simulations in R and interpret them
+
+```{r, echo = FALSE}
+# This function relies on getthing h vectors that match E2
+# Use cdbbox() to get the correct h vector
+# Nothice the ... - this corresponds to the ... in the barplot
+# you can use additional argument which pass to the barplot
+coindie<-function(n=100, h=c(1/4,3/4),E2=c(5,6),init=1,...){
+library(xtable)
+dieset<-c()
+dieset[1]<-"E1"
+die<-function(n=1){
+sample(1:6,size=n,replace=TRUE)
+}
+
+coin<-function(n=1){
+sample(1:2,size=n,replace=TRUE)
+}
+face<-c()
+alpha<-c() # holds acceptance probs
+alpha[1]<-1
+post<-c()# post sample
+prop<-c() # vec of proposed states 1s and 2s
+prop[1]=init # initial state
+post[1]=prop[1]
+dice<-c()
+dice[1]<-die()
+
+for(i in 2:n){ # starts at 2 because initial value given above
+prop[i]<-coin()
+alpha[i]=min(1,h[prop[i]]/h[post[i-1]])
+
+dice[i]<-die()
+ifelse(alpha[i]==1,dieset[i]<-"E1",dieset[i]<-"E2")
+# is x an element of set y
+if(alpha[i]==1 | (is.element(dice[i],E2) & alpha[i]!=1)){post[i]<-prop[i]}
+else{post[i]<-post[i-1]}
+ }  
+res<-matrix(c(prop,round(alpha,2),dieset,dice,post ),nc=5,nr=n,byrow=FALSE,dimnames=list(1:n,c("proposal","alpha", "E","dice","post")))
+sim<-table(post)/n
+postexact<-h/sum(h)
+barplot(sim,..., main = "Proportional to target h", col =c( "green3", "red"))
+return(list(iter=res,sim=sim,postexact=postexact,post=post,xtable=xtable(res,dig=1)) )
+}
+
+# retrive the function
+coindie(n = 10, h=c(0.6, 0.4), E2 = c(2, 3, 4, 5))
+```
+
+To improve of the graph, I added a title, changed color,width and angle. 
+
+## 2.2 Use of output of cdbbox as input to the coindie()
+```{r, echo = FALSE}
+coindie<-function(n=100, h=c(1/4,3/4),E2=c(5,6),init=1,...){
+library(xtable)
+dieset<-c()
+dieset[1]<-"E1"
+die<-function(n=1){
+sample(1:6,size=n,replace=TRUE)
+}
+
+coin<-function(n=1){
+sample(1:2,size=n,replace=TRUE)
+}
+face<-c()
+alpha<-c() # holds acceptance probs
+alpha[1]<-1
+post<-c()# post sample
+prop<-c() # vec of proposed states 1s and 2s
+prop[1]=init # initial state
+post[1]=prop[1]
+dice<-c()
+dice[1]<-die()
+
+for(i in 2:n){ # starts at 2 because initial value given above
+prop[i]<-coin()
+alpha[i]=min(1,h[prop[i]]/h[post[i-1]])
+
+dice[i]<-die()
+ifelse(alpha[i]==1,dieset[i]<-"E1",dieset[i]<-"E2")
+# is x an element of set y
+if(alpha[i]==1 | (is.element(dice[i],E2) & alpha[i]!=1)){post[i]<-prop[i]}
+else{post[i]<-post[i-1]}
+ }  
+res<-matrix(c(prop,round(alpha,2),dieset,dice,post ),nc=5,nr=n,byrow=FALSE,dimnames=list(1:n,c("proposal","alpha", "E","dice","post")))
+sim<-table(post)/n
+postexact<-h/sum(h)
+barplot(sim,..., main = "Proportional to target h", col =c( "lightblue", "mistyrose"),
+        angle = 90, width = c(5, 10))
+return(list(iter=res,sim=sim,postexact=postexact,post=post,xtable=xtable(res,dig=1)) )
+
+}
+
+result2 <- coindie(n = 200, h = result$h, E2 = 1:result$k)
+
+```
+
+I used h values which is `prior * likelihood` from cdbbox() function. 
+Also set E2 to 1:k value (2 stage) from cdbbox() function output. 
+
+
+# Task 3. Make a simulation with any number of discrete theta values
+
+## 3.1 Explain the code snippet
+
+Explanation: first select a random value (U) from uniform(1). 
+If the value in uniform is less than the value in alpha(alpha[i]), 
+then we accept the proposal ({post[i] < prop[i]}).
+Otherwise, we reject the proposal. Posterior value is just the same one as previous. 
+
+
+## 3.2 Using a uniform prior to create a simulated posterior histogram
+```{r, echo = FALSE}
+simR <- function(n, init = 0.5, h=c(0.03344302, 0.06165627)){
+alpha<-c() # holds transition probs
+alpha[1]<-1
+u<-c() # holds uniform values
+u[1]<-1
+post<-c()# post sample
+prop<-c() # vec of proposed states 1s and 2s
+prop[1]=1 # initial state
+post[1]=prop[1]
+for(i in 2:n){ # starts at 2 because initial value given above
+# proposal state 
+prop[i]=sample(1:length(h),1,replace=TRUE)
+# calculate alpha
+# notice h[prop[i]] gives the actual value of h
+alpha[i]=min(1,h[prop[i]]/h[post[i-1]])
+# to calculate accepting proposal with prob alpha
+# select a random value from  a uniform (0,1)
+u[i]=runif(1)
+if(u[i]<=alpha[i]){post[i]<-prop[i]}
+else{post[i]<-post[i-1]}
+}
+res<-matrix(c(prop,u,alpha,post ),nc=4,nr=n,byrow=FALSE)
+sim<-table(post)/n
+
+barplot(sim)
+plot(sim)
+postexact<-h/sum(h)
+# The returned output is a list 
+# Use obj$ to obtain whatever interests you
+return(list(iter=res,sim=sim,postexact=postexact,post=post)) -> a
+}
+simR(40)
+a
+hist(a$post, freq = FALSE)
+```
+
+
+## 3.3 Improve the graphical output by editing the function
+
+
+# Task 4. Use different proposals
+```{r, echo = FALSE}
+# Again for the discrete case
+simRQ<-function(n=1000,init=1, h=c(1,1),pr=c(1,1)/2,...){
+alpha<-c() # holds transition probs
+alpha[1]<-1
+u<-c() # holds uniform values
+u[1]<-1
+post<-c()# post sample
+prop<-c() # vec of proposed states 1s and 2s etc
+prop[1]=init # initial state
+post[1]=prop[1]
+q<-function(x){pr[x]}
+for(i in 2:n){ # starts at 2 because initial value given above
+#make a sample from the proposal
+sample(1:length(h),1,replace=TRUE,prob=pr)->prop[i]
+#Calculate alpha adjusting for the proposal being non uniform
+alpha[i]=min(1,h[prop[i]]*q(post[i-1])/(h[post[i-1]]*q(prop[i])))
+# now choose the proposal with probability alpha
+u[i]=runif(1)
+if(u[i]<=alpha[i]){post[i]<-prop[i]}
+else{post[i]=post[i-1]}
+}
+res<-matrix(c(prop,u,alpha,post ),nc=4,nr=n,byrow=FALSE,dimnames=list(1:n,c("prop","u","alpha","post")))
+sim<-table(post)/n
+postexact<-h/sum(h)
+barplot(sim,...)
+hist(post, freq = FALSE)
+tmp<-c()
+ifelse(length(res[,1])>=20,tmp<-res[1:20,],tmp<-res)
+return(list(iter=tmp,sim=sim,post=postexact) )
+}
+# not sure what pr is 
+simRQ(1000, h = c(3, 1), pr = c(1, 2)/3) -> ans1
+hist(ans1$iter[,3], freq = FALSE)
+
+```
+
+
+# Task 5. Make simulations from a continuous paramter with any proposal
+```{r}
+simRC<-function(n=10,init=0.5, h=function(theta){dunif(theta)*dbinom(x=4,size=10,prob=theta)},a=3,b=4){
+#dbeta(x, shape1, shape2, ncp = 0, log = FALSE)
+alpha<-c() # holds transition probs
+alpha[1]<-1
+u<-c() # holds uniform values
+u[1]<-1
+post<-c()# post sample
+prop<-c() # vec of proposed states 1s and 2s
+prop[1]=init # initial state
+post[1]=prop[1]
+q=function(x){dbeta(x,a,b)}
+for(i in 2:n){ # starts at 2 because initial value given above
+rbeta(1,a,b)->prop[i]
+
+alpha[i]=min(1,h(prop[i])*q(post[i-1])/(h(post[i-1])*q(prop[i])))
+u[i]=runif(1)
+ifelse(u[i]<=alpha[i],post[i]<-prop[i],post[i]<-post[i-1])
+}
+res<-matrix(c(prop,u,alpha,post ),nc=4,nr=n,byrow=FALSE,dimnames=list(1:n,c("prop","u","alpha","post")))
+hist(post, freq=FALSE)
+return(list(matrix=res,summary=summary(post)) )
+}
+
+simRC(10000)
+```
+
+
+# Task 6. Use JAGS to carry out a Gibbs sample for SLR
+
